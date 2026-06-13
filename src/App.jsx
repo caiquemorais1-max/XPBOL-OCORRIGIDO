@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 const ADMIN_PASSWORD = "XP2026";
 const GOLD = "#C8A84B";
@@ -94,23 +94,71 @@ function ConstellationBg({ width=400, height=300 }) {
 
 // QR Code generator (pure JS, no library needed)
 function QRDisplay({ url }) {
-  const canvasRef = useRef(null);
+  const [src, setSrc] = useState(null);
   useEffect(() => {
-    if (!canvasRef.current || !url) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const size = 200;
-    canvas.width = size; canvas.height = size;
-    // Draw placeholder styled QR (we'll use a URL-based QR service)
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}&bgcolor=0d0d0d&color=C8A84B&qzone=1`;
-    img.onload = () => { ctx.drawImage(img, 0, 0, size, size); };
+    if (!url) return;
+    function tryGenerate() {
+      if (!window.QRCode) return;
+      const div = document.createElement("div");
+      document.body.appendChild(div);
+      try {
+        new window.QRCode(div, {
+          text: url, width: 220, height: 220,
+          colorDark: "#C8A84B", colorLight: "#0d0d0d",
+          correctLevel: window.QRCode.CorrectLevel.M
+        });
+        setTimeout(() => {
+          const canvas = div.querySelector("canvas");
+          if (canvas) setSrc(canvas.toDataURL());
+          document.body.removeChild(div);
+        }, 300);
+      } catch(e) { document.body.removeChild(div); }
+    }
+    if (window.QRCode) { tryGenerate(); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+    s.onload = tryGenerate;
+    s.onerror = () => setSrc("fallback");
+    document.head.appendChild(s);
   }, [url]);
-  return <canvas ref={canvasRef} style={{borderRadius:4,display:"block"}}/>;
+
+  if (!src) return (
+    <div style={{width:220,height:220,display:"flex",alignItems:"center",justifyContent:"center",color:"#333",fontSize:11,letterSpacing:2,fontFamily:"'Barlow Condensed',sans-serif"}}>
+      GERANDO QR...
+    </div>
+  );
+  if (src === "fallback") return (
+    <div style={{width:220,padding:16,textAlign:"center",color:GOLD,fontSize:11,letterSpacing:1,wordBreak:"break-all",fontFamily:"'Barlow',sans-serif"}}>{url}</div>
+  );
+  return <img src={src} width={220} height={220} style={{display:"block",imageRendering:"pixelated"}}/>;
 }
 
 // ===================== APP =====================
+
+function QRScreen({ appUrl }) {
+  const [copied, setCopied] = useState(false);
+  function copyUrl() {
+    navigator.clipboard.writeText(appUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+  return (
+    <div className="qr-page">
+      <div className="qr-title">Compartilhe o <span>Bolão</span></div>
+      <div className="qr-sub">Escaneie o QR Code ou copie o link</div>
+      <div className="qr-box">
+        <QRDisplay url={appUrl}/>
+      </div>
+      <div className="qr-url">{appUrl}</div>
+      <button className={"qr-copy" + (copied ? " copied" : "")} onClick={copyUrl}>
+        {copied ? "✓ Link copiado!" : "Copiar link"}
+      </button>
+      <div className="qr-hint">Compartilhe no grupo da viagem para todos apostar!</div>
+    </div>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState("login");
   const [userName, setUserName] = useState("");
@@ -522,28 +570,8 @@ export default function App() {
           })()}
         </>
       )}
-
       {/* QR CODE */}
-      {screen==="qr"&&(()=>{
-        const [copied, setCopied] = useState(false);
-        function copyUrl() {
-          navigator.clipboard.writeText(appUrl).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2000); });
-        }
-        return(
-          <div className="qr-page">
-            <div className="qr-title">Compartilhe o <span>Bolão</span></div>
-            <div className="qr-sub">Escaneie o QR Code ou copie o link</div>
-            <div className="qr-box">
-              <QRDisplay url={appUrl}/>
-            </div>
-            <div className="qr-url">{appUrl}</div>
-            <button className={`qr-copy${copied?" copied":""}`} onClick={copyUrl}>
-              {copied?"✓ Link copiado!":"Copiar link"}
-            </button>
-            <div className="qr-hint">Compartilhe no grupo da viagem para todos apostar!</div>
-          </div>
-        );
-      })()}
+      {screen==="qr"&&<QRScreen appUrl={appUrl}/>}
 
       {/* ADMIN */}
       {screen==="admin"&&(
