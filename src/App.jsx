@@ -189,7 +189,12 @@ export default function App() {
     if(!myBets[gameId]) return;
     setSaving(true);
     try {
-      await setDoc(doc(db,"bets",userName),{bets:myBets},{merge:true});
+      const betsWithTs = {...myBets};
+      if (!betsWithTs[gameId].timestamp) {
+        betsWithTs[gameId] = {...betsWithTs[gameId], timestamp: Date.now()};
+        setMyBets(betsWithTs);
+      }
+      await setDoc(doc(db,"bets",userName),{bets:betsWithTs},{merge:true});
       setSavedMap(s=>({...s,[gameId]:true}));
       setTimeout(()=>setSavedMap(s=>({...s,[gameId]:false})),2500);
     } catch(e) { alert("Erro ao salvar."); }
@@ -251,7 +256,16 @@ export default function App() {
     return Object.entries(allBets)
       .map(([name,bets])=>{const bet=bets[gameId];if(!bet)return null;return{name,pts:calcPoints(bet,res),bet};})
       .filter(Boolean)
-      .sort((a,b)=>{if(a.pts===null&&b.pts===null)return 0;if(a.pts===null)return 1;if(b.pts===null)return -1;return b.pts-a.pts;});
+      .sort((a,b)=>{
+        if(a.pts===null&&b.pts===null)return 0;
+        if(a.pts===null)return 1;
+        if(b.pts===null)return -1;
+        if(b.pts!==a.pts) return b.pts-a.pts;
+        // Tiebreaker: who bet first (lower timestamp wins)
+        const tsA = a.bet.timestamp || 9999999999999;
+        const tsB = b.bet.timestamp || 9999999999999;
+        return tsA - tsB;
+      });
   }
 
   const cGame = activeGames.find(g=>g.id===activeGame)||activeGames[0];
@@ -302,46 +316,46 @@ export default function App() {
     /* GAME CARD */
     .gc{background:linear-gradient(145deg,#0f0f0f,#080808);border:1px solid #181818;border-top:2px solid ${GOLD};padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
     .gcglow{position:absolute;top:-40px;right:-40px;width:240px;height:240px;background:radial-gradient(circle,rgba(200,168,75,.05),transparent 70%);pointer-events:none;}
-    .glbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:4px;color:${GOLD};text-transform:uppercase;}
-    .gven{font-size:10px;color:#2a2a2a;margin-top:2px;letter-spacing:.5px;}
+    .glbl{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:4px;color:${GOLD};text-transform:uppercase;}
+    .gven{font-size:11px;color:#666;margin-top:2px;letter-spacing:.5px;}
     .bclosed{background:#140808;border:1px solid #2a1010;color:#7a3030;font-size:9px;font-weight:800;letter-spacing:2px;padding:4px 9px;text-transform:uppercase;}
 
     /* MATCHUP */
     .mu{display:flex;align-items:center;justify-content:space-between;margin:18px 0;}
     .team{text-align:center;flex:1;}
     .tflag{font-size:52px;line-height:1;margin-bottom:8px;display:block;}
-    .tnm{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#999;letter-spacing:1px;text-transform:uppercase;}
+    .tnm{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#ccc;letter-spacing:1px;text-transform:uppercase;}
     .vsb{display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 12px;}
     .vsl{width:1px;height:20px;background:#181818;}
-    .vst{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#181818;letter-spacing:3px;}
+    .vst{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#333;letter-spacing:3px;}
 
     /* SCORE */
-    .sp{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:300;letter-spacing:5px;color:#222;text-transform:uppercase;text-align:center;margin-bottom:10px;}
+    .sp{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;letter-spacing:4px;color:#777;text-transform:uppercase;text-align:center;margin-bottom:10px;}
     .sr{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px;}
-    .si{width:74px;height:74px;background:#060606;border:1px solid #1a1a1a;color:#fff;font-size:42px;font-weight:900;text-align:center;outline:none;font-family:'Barlow Condensed',sans-serif;transition:border .15s,box-shadow .15s;border-radius:0;}
+    .si{width:74px;height:74px;background:#0a0a0a;border:1px solid #333;color:#fff;font-size:42px;font-weight:900;text-align:center;outline:none;font-family:'Barlow Condensed',sans-serif;transition:border .15s,box-shadow .15s;border-radius:0;}
     .si:focus{border-color:${GOLD};box-shadow:0 0 0 3px rgba(200,168,75,.07);}
     .si:disabled{opacity:.2;cursor:not-allowed;}
-    .ssep{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:#161616;}
+    .ssep{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:#444;}
 
     /* PRIZE */
     .prz{display:flex;align-items:center;gap:12px;border-top:1px solid #121212;padding-top:14px;margin-bottom:14px;}
     .przico{width:36px;height:36px;background:#060606;border:1px solid #1a1a1a;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-    .przlbl{font-size:9px;color:#2a2a2a;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;}
+    .przlbl{font-size:10px;color:#777;letter-spacing:2px;text-transform:uppercase;font-weight:700;}
     .prznm{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${GOLD};line-height:1;margin-top:2px;}
 
     /* BUTTONS */
     .actbtn{width:100%;background:${GOLD};color:#0d0d0d;border:none;padding:14px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:filter .15s;border-radius:0;}
     .actbtn:hover:not(:disabled){filter:brightness(1.1);}
-    .actbtn:disabled{background:#0f0f0f;color:#1e1e1e;cursor:not-allowed;}
+    .actbtn:disabled{background:#111;color:#444;cursor:not-allowed;}
     .actbtn.saved{background:#081408;color:#2a8a2a;border:1px solid #102010;}
     .actbtn.ghost{background:#080808;color:#2a2a2a;border:1px solid #111;cursor:default;font-size:12px;letter-spacing:2px;}
 
     /* PTS */
     .ptsbox{background:#060606;border:1px solid #111;}
-    .ptshd{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:#222;text-transform:uppercase;padding:10px 14px 6px;border-bottom:1px solid #0e0e0e;}
+    .ptshd{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;color:#666;text-transform:uppercase;padding:10px 14px 6px;border-bottom:1px solid #1a1a1a;}
     .ptsr{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #0e0e0e;}
     .ptsr:last-child{border-bottom:none;}
-    .ptsd{font-size:12px;color:#2a2a2a;}
+    .ptsd{font-size:13px;color:#777;}
     .ptsv{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:${GOLD};}
 
     /* RANKING */
@@ -506,7 +520,7 @@ export default function App() {
                   <div className="gcglow"/>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
                     <div><div className="glbl">{game.label}</div><div className="gven">{game.venue}</div></div>
-                    {closed?<div className="bclosed">🔒 Encerrado</div>:<div style={{fontSize:10,color:"#222",letterSpacing:.5}}>{fmtDate(game.date)}</div>}
+                    {closed?<div className="bclosed">🔒 Encerrado</div>:<div style={{fontSize:11,color:"#666",letterSpacing:.5}}>{fmtDate(game.date)}</div>}
                   </div>
                   <div className="mu">
                     <div className="team">
@@ -538,8 +552,8 @@ export default function App() {
                 </div>
                 <div className="ptsbox">
                   <div className="ptshd">Sistema de Pontuação</div>
-                  {[["Placar exato","3 pts"],["Vencedor / empate","1 pt"],["Total de gols correto","+1 pt"],["Máximo por jogo","5 pts"]].map(([d,v])=>(
-                    <div key={d} className="ptsr"><span className="ptsd">{d}</span><span className="ptsv">{v}</span></div>
+                  {[["Placar exato","3 pts"],["Vencedor / empate","1 pt"],["Total de gols correto","+1 pt"],["Máximo por jogo","5 pts"],["Desempate","1º a apostar"]].map(([d,v])=>(
+                    <div key={d} className="ptsr"><span className="ptsd">{d}</span><span className="ptsv" style={{fontSize:d==="Desempate"?13:undefined,color:d==="Desempate"?"#555":undefined}}>{v}</span></div>
                   ))}
                 </div>
               </div>
