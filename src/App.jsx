@@ -21,9 +21,9 @@ const GOLD_DIM = "#7A6520";
 const DARK = "#0d0d0d";
 
 const DEFAULT_GAMES = [
-  { id:"game1", home:"Argentina", away:"Argélia", homeflag:"🇦🇷", awayflag:"🇩🇿", homeabbr:"ARG", awayabbr:"ALG", date:"2026-06-16T15:00:00", label:"JOGO 1", prize:"Apple Watch", prizeIcon:"⌚", venue:"Estádio Azteca", active:true },
-  { id:"game2", home:"Uzbequistão", away:"Colômbia", homeflag:"🇺🇿", awayflag:"🇨🇴", homeabbr:"UZB", awayabbr:"COL", date:"2026-06-18T19:00:00", label:"JOGO 2", prize:"AirPods", prizeIcon:"🎧", venue:"No Estádio (ao vivo!)", active:true },
-  { id:"game3", home:"Brasil", away:"Haiti", homeflag:"🇧🇷", awayflag:"🇭🇹", homeabbr:"BRA", awayabbr:"HAI", date:"2026-06-21T17:00:00", label:"JOGO 3", prize:"A definir", prizeIcon:"🏆", venue:"Xcaret", active:true },
+  { id:"game1", home:"Argentina", away:"Argélia", homeflag:"🇦🇷", awayflag:"🇩🇿", homeabbr:"ARG", awayabbr:"ALG", date:"2026-06-16T19:00:00", label:"JOGO 1", prize:"Apple Watch", prizeIcon:"⌚", venue:"GEHA Field at Arrowhead Stadium — Kansas City", active:true },
+  { id:"game2", home:"Uzbequistão", away:"Colômbia", homeflag:"🇺🇿", awayflag:"🇨🇴", homeabbr:"UZB", awayabbr:"COL", date:"2026-06-18T19:00:00", label:"JOGO 2", prize:"AirPods", prizeIcon:"🎧", venue:"Estádio Azteca (ao vivo!)", active:true },
+  { id:"game3", home:"Brasil", away:"Haiti", homeflag:"🇧🇷", awayflag:"🇭🇹", homeabbr:"BRA", awayabbr:"HAI", date:"2026-06-19T19:30:00", label:"JOGO 3", prize:"A definir", prizeIcon:"🏆", venue:"Lincoln Financial Field — Filadélfia", active:true },
 ];
 
 function calcPoints(bet, result) {
