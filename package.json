@@ -1,6 +1,7 @@
 {
   "name": "bolao-xp2026",
   "version": "1.0.0",
+  
   "scripts": {
     "dev": "vite",
     "build": "vite build",
