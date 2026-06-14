@@ -1,8 +1,22 @@
 import { useState, useEffect } from "react";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "firebase/firestore";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCj22pVl39ZXq4yhPjX63xn3cDbYEUVOBc",
+  authDomain: "bolao-xp2026.firebaseapp.com",
+  projectId: "bolao-xp2026",
+  storageBucket: "bolao-xp2026.firebasestorage.app",
+  messagingSenderId: "852688248331",
+  appId: "1:852688248331:web:30dcaf7fdcd019610db10e"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
 const ADMIN_PASSWORD = "XP2026";
 const GOLD = "#C8A84B";
-const GOLD2 = "#E2C060";
 const GOLD_DIM = "#7A6520";
 
 const DEFAULT_GAMES = [
@@ -30,18 +44,11 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-async function sGet(key) {
-  try { const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : null; } catch { return null; }
-}
-async function sSet(key, val) { try { await window.storage.set(key, JSON.stringify(val), true); } catch {} }
-
 // ===================== SVG COMPONENTS =====================
 function Shield({ w = 120, h = 140, glow = false }) {
   const pts = {
-    TL: [20,0], TR: [80,0], SL: [0,18], SR: [100,18],
-    ML: [0,65], MR: [100,65], BOT: [50,115],
-    IT: [50,0], IL: [22,38], IR: [78,38], IC: [50,38],
-    IML: [18,72], IMR: [82,72], IBC: [50,80],
+    TL:[20,0],TR:[80,0],SL:[0,18],SR:[100,18],ML:[0,65],MR:[100,65],BOT:[50,115],
+    IT:[50,0],IL:[22,38],IR:[78,38],IC:[50,38],IML:[18,72],IMR:[82,72],IBC:[50,80],
   };
   const lines = [
     [pts.TL,pts.IT],[pts.IT,pts.TR],[pts.TL,pts.SL],[pts.TR,pts.SR],
@@ -92,78 +99,63 @@ function ConstellationBg({ width=400, height=300 }) {
   );
 }
 
-// QR Code generator (pure JS, no library needed)
-function QRDisplay({ url }) {
-  const [src, setSrc] = useState(null);
+function QRScreen({ appUrl }) {
+  const [copied, setCopied] = useState(false);
+  const [qrSrc, setQrSrc] = useState(null);
+
   useEffect(() => {
-    if (!url) return;
-    function tryGenerate() {
+    if (!appUrl) return;
+    function tryGen() {
       if (!window.QRCode) return;
       const div = document.createElement("div");
       document.body.appendChild(div);
       try {
-        new window.QRCode(div, {
-          text: url, width: 220, height: 220,
-          colorDark: "#C8A84B", colorLight: "#0d0d0d",
-          correctLevel: window.QRCode.CorrectLevel.M
-        });
+        new window.QRCode(div, { text: appUrl, width: 220, height: 220, colorDark: "#C8A84B", colorLight: "#0d0d0d", correctLevel: window.QRCode.CorrectLevel.M });
         setTimeout(() => {
           const canvas = div.querySelector("canvas");
-          if (canvas) setSrc(canvas.toDataURL());
+          if (canvas) setQrSrc(canvas.toDataURL());
           document.body.removeChild(div);
         }, 300);
       } catch(e) { document.body.removeChild(div); }
     }
-    if (window.QRCode) { tryGenerate(); return; }
+    if (window.QRCode) { tryGen(); return; }
     const s = document.createElement("script");
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
-    s.onload = tryGenerate;
-    s.onerror = () => setSrc("fallback");
+    s.onload = tryGen;
     document.head.appendChild(s);
-  }, [url]);
+  }, [appUrl]);
 
-  if (!src) return (
-    <div style={{width:220,height:220,display:"flex",alignItems:"center",justifyContent:"center",color:"#333",fontSize:11,letterSpacing:2,fontFamily:"'Barlow Condensed',sans-serif"}}>
-      GERANDO QR...
+  function copyUrl() {
+    navigator.clipboard.writeText(appUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  }
+
+  return (
+    <div style={{padding:"24px 14px",maxWidth:400,margin:"0 auto",textAlign:"center"}}>
+      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:"#fff",letterSpacing:1,marginBottom:4}}>
+        Compartilhe o <span style={{color:GOLD}}>Bolão</span>
+      </div>
+      <div style={{fontSize:12,color:"#3a3a3a",letterSpacing:1,marginBottom:28}}>Escaneie o QR Code ou copie o link</div>
+      <div style={{background:"#0a0a0a",border:`1px solid #1e1e1e`,borderTop:`2px solid ${GOLD}`,padding:28,display:"inline-block",marginBottom:20}}>
+        {qrSrc
+          ? <img src={qrSrc} width={220} height={220} style={{display:"block",imageRendering:"pixelated"}}/>
+          : <div style={{width:220,height:220,display:"flex",alignItems:"center",justifyContent:"center",color:"#333",fontSize:11,letterSpacing:2,fontFamily:"'Barlow Condensed',sans-serif"}}>GERANDO QR...</div>
+        }
+      </div>
+      <div style={{fontSize:11,color:"#444",letterSpacing:1,wordBreak:"break-all",padding:"10px 14px",background:"#080808",border:"1px solid #141414",marginBottom:16}}>{appUrl}</div>
+      <button onClick={copyUrl} style={{background:copied?"#0a180a":GOLD,color:copied?"#3aaa3a":"#0d0d0d",border:copied?"1px solid #143014":"none",padding:"12px 24px",fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:900,letterSpacing:2,cursor:"pointer"}}>
+        {copied?"✓ Link copiado!":"Copiar link"}
+      </button>
+      <div style={{fontSize:11,color:"#2a2a2a",marginTop:16,letterSpacing:1}}>Compartilhe no grupo da viagem para todos apostar!</div>
     </div>
   );
-  if (src === "fallback") return (
-    <div style={{width:220,padding:16,textAlign:"center",color:GOLD,fontSize:11,letterSpacing:1,wordBreak:"break-all",fontFamily:"'Barlow',sans-serif"}}>{url}</div>
-  );
-  return <img src={src} width={220} height={220} style={{display:"block",imageRendering:"pixelated"}}/>;
 }
 
 // ===================== APP =====================
-
-function QRScreen({ appUrl }) {
-  const [copied, setCopied] = useState(false);
-  function copyUrl() {
-    navigator.clipboard.writeText(appUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-  return (
-    <div className="qr-page">
-      <div className="qr-title">Compartilhe o <span>Bolão</span></div>
-      <div className="qr-sub">Escaneie o QR Code ou copie o link</div>
-      <div className="qr-box">
-        <QRDisplay url={appUrl}/>
-      </div>
-      <div className="qr-url">{appUrl}</div>
-      <button className={"qr-copy" + (copied ? " copied" : "")} onClick={copyUrl}>
-        {copied ? "✓ Link copiado!" : "Copiar link"}
-      </button>
-      <div className="qr-hint">Compartilhe no grupo da viagem para todos apostar!</div>
-    </div>
-  );
-}
-
 export default function App() {
-  const [screen, setScreen] = useState("login");
-  const [userName, setUserName] = useState("");
+  const [screen, setScreen] = useState(() => localStorage.getItem("bolao_screen") || "login");
+  const [userName, setUserName] = useState(() => localStorage.getItem("bolao_user") || "");
   const [nameInput, setNameInput] = useState("");
-  const [bets, setBets] = useState({});
+  const [myBets, setMyBets] = useState({});
   const [allBets, setAllBets] = useState({});
   const [results, setResults] = useState({});
   const [games, setGames] = useState(DEFAULT_GAMES);
@@ -171,82 +163,105 @@ export default function App() {
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminError, setAdminError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [savedGames, setSavedGames] = useState({});
+  const [savedMap, setSavedMap] = useState({});
   const [activeGame, setActiveGame] = useState("game1");
   const [rankTab, setRankTab] = useState("game1");
+  const [adminTab, setAdminTab] = useState("results");
   const [appUrl, setAppUrl] = useState("");
-  const [adminTab, setAdminTab] = useState("results"); // results | prizes | games
+  const [loading, setLoading] = useState(true);
 
+  // Set app URL
+  useEffect(() => { setAppUrl(window.location.href.split("?")[0]); }, []);
+
+  // Save screen & user to localStorage
+  useEffect(() => { if(screen !== "login") localStorage.setItem("bolao_screen", screen); }, [screen]);
+  useEffect(() => { if(userName) localStorage.setItem("bolao_user", userName); }, [userName]);
+
+  // If user is already logged in, skip login
   useEffect(() => {
-    setAppUrl(window.location.href.split("?")[0]);
-    (async () => {
-      const ab = await sGet("bolao:allBets"); if(ab) setAllBets(ab);
-      const res = await sGet("bolao:results"); if(res) setResults(res);
-      const gm = await sGet("bolao:games"); if(gm) setGames(gm);
-    })();
+    if (userName && screen === "login") setScreen("bets");
   }, []);
 
+  // Load user's own bets from Firestore
   useEffect(() => {
-    const iv = setInterval(async () => {
-      const ab = await sGet("bolao:allBets"); if(ab) setAllBets(ab);
-      const res = await sGet("bolao:results"); if(res) setResults(res);
-      const gm = await sGet("bolao:games"); if(gm) setGames(gm);
-    }, 30000);
-    return () => clearInterval(iv);
+    if (!userName) { setLoading(false); return; }
+    const load = async () => {
+      try {
+        const snap = await getDoc(doc(db, "bets", userName));
+        if (snap.exists()) setMyBets(snap.data().bets || {});
+      } catch(e) {}
+      setLoading(false);
+    };
+    load();
+  }, [userName]);
+
+  // Real-time listener for ALL bets
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "bets"), (snap) => {
+      const data = {};
+      snap.forEach(d => { data[d.id] = d.data().bets || {}; });
+      setAllBets(data);
+    });
+    return () => unsub();
+  }, []);
+
+  // Real-time listener for results
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "config", "results"), (snap) => {
+      if (snap.exists()) setResults(snap.data() || {});
+    });
+    return () => unsub();
+  }, []);
+
+  // Real-time listener for games config
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "config", "games"), (snap) => {
+      if (snap.exists()) setGames(snap.data().list || DEFAULT_GAMES);
+    });
+    return () => unsub();
   }, []);
 
   const activeGames = games.filter(g => g.active);
 
-  useEffect(() => {
-    if (activeGames.length > 0 && !activeGames.find(g => g.id === activeGame)) {
-      setActiveGame(activeGames[0].id);
-      setRankTab(activeGames[0].id);
-    }
-  }, [games]);
-
   function handleLogin() {
-    const name = nameInput.trim(); if(!name) return;
+    const name = nameInput.trim(); if (!name) return;
     setUserName(name);
-    setBets(allBets[name] || {});
     setScreen("bets");
   }
 
   async function handleSaveBet(gameId) {
-    if(!bets[gameId]) return;
+    if (!myBets[gameId]) return;
     setSaving(true);
-    const updated = {...allBets, [userName]: {...(allBets[userName]||{}), [gameId]: bets[gameId]}};
-    setAllBets(updated);
-    await sSet("bolao:allBets", updated);
-    setSavedGames(s => ({...s, [gameId]: true}));
+    try {
+      await setDoc(doc(db, "bets", userName), { bets: myBets }, { merge: true });
+      setSavedMap(s => ({...s, [gameId]: true}));
+      setTimeout(() => setSavedMap(s => ({...s, [gameId]: false})), 2500);
+    } catch(e) { alert("Erro ao salvar. Verifique sua conexão."); }
     setSaving(false);
-    setTimeout(() => setSavedGames(s => ({...s, [gameId]: false})), 2500);
   }
 
   function updateBet(gameId, field, val) {
     const v = val.replace(/\D/g,"").slice(0,2);
-    setBets(b => ({...b, [gameId]: {...(b[gameId]||{}), [field]: v}}));
-    setSavedGames(s => ({...s, [gameId]: false}));
+    setMyBets(b => ({...b, [gameId]: {...(b[gameId]||{}), [field]: v}}));
+    setSavedMap(s => ({...s, [gameId]: false}));
   }
 
   function handleAdminLogin() {
-    if(adminPass === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminError(""); }
+    if (adminPass === ADMIN_PASSWORD) { setAdminUnlocked(true); setAdminError(""); }
     else setAdminError("Senha incorreta");
   }
 
-  async function handleSaveResult(gameId) {
-    await sSet("bolao:results", results);
-    setSavedGames(s => ({...s, [`r_${gameId}`]: true}));
-    setTimeout(() => setSavedGames(s => ({...s, [`r_${gameId}`]: false})), 2000);
-  }
-
-  function updateResult(gameId, field, val) {
-    const v = val.replace(/\D/g,"").slice(0,2);
-    setResults(r => ({...r, [gameId]: {...(r[gameId]||{}), [field]: v}}));
+  async function handleSaveResult(gameId, res) {
+    try {
+      await setDoc(doc(db, "config", "results"), { [gameId]: res }, { merge: true });
+      setSavedMap(s => ({...s, [`r_${gameId}`]: true}));
+      setTimeout(() => setSavedMap(s => ({...s, [`r_${gameId}`]: false})), 2000);
+    } catch(e) { alert("Erro ao salvar resultado."); }
   }
 
   async function handleSaveGames(updatedGames) {
     setGames(updatedGames);
-    await sSet("bolao:games", updatedGames);
+    try { await setDoc(doc(db, "config", "games"), { list: updatedGames }); } catch(e) {}
   }
 
   function updateGamePrize(gameId, field, val) {
@@ -254,9 +269,11 @@ export default function App() {
   }
 
   async function saveGamePrizes() {
-    await sSet("bolao:games", games);
-    setSavedGames(s => ({...s, prizes: true}));
-    setTimeout(() => setSavedGames(s => ({...s, prizes: false})), 2000);
+    try {
+      await setDoc(doc(db, "config", "games"), { list: games });
+      setSavedMap(s => ({...s, prizes: true}));
+      setTimeout(() => setSavedMap(s => ({...s, prizes: false})), 2000);
+    } catch(e) {}
   }
 
   async function toggleGame(gameId) {
@@ -267,7 +284,7 @@ export default function App() {
   function getRanking(gameId) {
     const res = results[gameId];
     return Object.entries(allBets)
-      .map(([name, ub]) => { const bet = ub[gameId]; if(!bet) return null; return {name, pts: calcPoints(bet, res), bet}; })
+      .map(([name, bets]) => { const bet = bets[gameId]; if(!bet) return null; return {name, pts: calcPoints(bet, res), bet}; })
       .filter(Boolean)
       .sort((a,b) => { if(a.pts===null&&b.pts===null) return 0; if(a.pts===null) return 1; if(b.pts===null) return -1; return b.pts-a.pts; });
   }
@@ -280,146 +297,119 @@ export default function App() {
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@300;400;500;600;700&display=swap');
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     html,body{background:#0d0d0d;color:#fff;font-family:'Barlow',sans-serif;min-height:100vh;}
-
     .header{background:#0a0a0a;border-bottom:1px solid #161616;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
     .header-brand{display:flex;align-items:center;gap:8px;}
-    .header-divider{width:1px;height:26px;background:#1a1a1a;margin:0 6px;}
-    .header-wm{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:.5px;line-height:1;}
-    .header-wm em{color:${GOLD};font-style:normal;}
-    .header-sub{font-size:9px;color:#2a2a2a;letter-spacing:3px;font-family:'Barlow Condensed',sans-serif;font-weight:300;}
-    .nav{display:flex;gap:0;}
-    .nav-btn{background:none;border:none;color:#2e2e2e;padding:6px 9px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:color .15s;position:relative;border-bottom:2px solid transparent;}
-    .nav-btn.on{color:${GOLD};border-bottom-color:${GOLD};}
-    .nav-btn:hover{color:#666;}
-
+    .hdiv{width:1px;height:26px;background:#1a1a1a;margin:0 6px;}
+    .hwm{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:.5px;line-height:1;}
+    .hwm em{color:${GOLD};font-style:normal;}
+    .hsub{font-size:9px;color:#2a2a2a;letter-spacing:3px;font-family:'Barlow Condensed',sans-serif;}
+    .nav{display:flex;}
+    .nb{background:none;border:none;color:#2e2e2e;padding:6px 9px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s;}
+    .nb.on{color:${GOLD};border-bottom-color:${GOLD};}
+    .nb:hover{color:#666;}
     .tabs{display:flex;background:#0a0a0a;border-bottom:1px solid #141414;overflow-x:auto;padding:0 12px;scrollbar-width:none;}
     .tabs::-webkit-scrollbar{display:none;}
     .tab{flex:0 0 auto;padding:13px 12px 11px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;color:#2a2a2a;text-transform:uppercase;cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;}
     .tab.on{color:${GOLD};border-bottom-color:${GOLD};}
-
-    .page{padding:14px;max-width:480px;margin:0 auto;position:relative;z-index:1;}
-
-    .game-card{background:linear-gradient(145deg,#0f0f0f 0%,#0a0a0a 100%);border:1px solid #1a1a1a;border-top:2px solid ${GOLD};padding:18px;margin-bottom:12px;position:relative;overflow:hidden;}
-    .card-glow{position:absolute;top:-30px;right:-30px;width:200px;height:200px;background:radial-gradient(circle,rgba(200,168,75,.06) 0%,transparent 70%);pointer-events:none;}
-    .game-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
-    .game-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:4px;color:${GOLD};}
-    .game-venue{font-size:10px;color:#2a2a2a;letter-spacing:.5px;}
-    .game-date{font-size:10px;color:#222;margin-top:2px;}
-    .badge-closed{background:#140808;border:1px solid #2a1010;color:#883333;font-size:9px;font-weight:800;letter-spacing:2px;padding:4px 8px;}
-
-    .matchup{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .page{padding:14px;max-width:480px;margin:0 auto;}
+    .gc{background:linear-gradient(145deg,#0f0f0f,#0a0a0a);border:1px solid #1a1a1a;border-top:2px solid ${GOLD};padding:18px;margin-bottom:12px;position:relative;overflow:hidden;}
+    .gcg{position:absolute;top:-30px;right:-30px;width:200px;height:200px;background:radial-gradient(circle,rgba(200,168,75,.06),transparent 70%);pointer-events:none;}
+    .glbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:4px;color:${GOLD};}
+    .gven{font-size:10px;color:#2a2a2a;margin-top:3px;}
+    .gdate{font-size:10px;color:#222;margin-top:2px;}
+    .bclosed{background:#140808;border:1px solid #2a1010;color:#883333;font-size:9px;font-weight:800;letter-spacing:2px;padding:4px 8px;}
+    .mu{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
     .team{text-align:center;flex:1;}
     .flag{font-size:38px;line-height:1;margin-bottom:7px;}
-    .team-nm{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#aaa;letter-spacing:.5px;text-transform:uppercase;}
-    .vs-block{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 8px;}
-    .vs-ln{width:1px;height:18px;background:#1a1a1a;}
-    .vs-tx{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:#1e1e1e;letter-spacing:2px;}
-
-    .score-prompt{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:300;letter-spacing:4px;color:#2a2a2a;text-transform:uppercase;text-align:center;margin-bottom:10px;}
-    .score-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;}
-    .score-in{width:70px;height:70px;background:#080808;border:1px solid #1e1e1e;color:#fff;font-size:38px;font-weight:900;text-align:center;outline:none;font-family:'Barlow Condensed',sans-serif;transition:border .15s,box-shadow .15s;-moz-appearance:textfield;border-radius:0;}
-    .score-in::-webkit-outer-spin-button,.score-in::-webkit-inner-spin-button{-webkit-appearance:none;}
-    .score-in:focus{border-color:${GOLD};box-shadow:0 0 0 2px rgba(200,168,75,.08);}
-    .score-in:disabled{opacity:.25;cursor:not-allowed;}
-    .score-sep{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;color:#1a1a1a;}
-
-    .prize-row{display:flex;align-items:center;gap:10px;border-top:1px solid #141414;padding-top:14px;margin-bottom:14px;}
-    .prize-ico{width:34px;height:34px;background:#080808;border:1px solid #1e1e1e;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
-    .prize-lbl{font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;font-weight:700;}
-    .prize-nm{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${GOLD};line-height:1;margin-top:1px;}
-
-    .action-btn{width:100%;background:${GOLD};color:#0d0d0d;border:none;padding:14px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:filter .15s;border-radius:0;}
-    .action-btn:hover:not(:disabled){filter:brightness(1.1);}
-    .action-btn:disabled{background:#111;color:#222;cursor:not-allowed;}
-    .action-btn.saved{background:#0a180a;color:#3aaa3a;border:1px solid #143014;}
-    .action-btn.ghost{background:#0a0a0a;color:#333;border:1px solid #141414;cursor:default;font-size:12px;letter-spacing:1px;}
-
-    .pts-box{background:#080808;border:1px solid #141414;}
-    .pts-hd{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:#2a2a2a;text-transform:uppercase;padding:10px 14px 6px;border-bottom:1px solid #0f0f0f;}
-    .pts-r{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #0f0f0f;}
-    .pts-r:last-child{border-bottom:none;}
-    .pts-d{font-size:12px;color:#333;}
-    .pts-v{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:${GOLD};}
-
-    .rank-hero{background:linear-gradient(180deg,#0f0c00 0%,#0a0a0a 100%);border-bottom:1px solid #141414;padding:14px;position:relative;overflow:hidden;}
-    .rank-game-nm{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#fff;letter-spacing:.5px;text-transform:uppercase;position:relative;z-index:1;}
-    .rank-game-nm span{color:${GOLD};}
-    .rank-meta{font-size:10px;color:#2a2a2a;letter-spacing:1px;margin-top:3px;position:relative;z-index:1;}
-    .result-chip{display:inline-flex;align-items:center;gap:10px;background:#0d0b00;border:1px solid #2a2000;padding:6px 12px;margin-top:10px;position:relative;z-index:1;}
-    .result-lbl{font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;font-family:'Barlow Condensed',sans-serif;}
-    .result-sc{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:${GOLD};}
-    .rank-pending{font-size:10px;color:#2a2a2a;letter-spacing:2px;margin-top:10px;position:relative;z-index:1;}
-
-    .rank-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #0d0d0d;}
-    .rank-row:last-child{border-bottom:none;}
-    .rank-row.me{background:#0c0a00;border-left:2px solid ${GOLD};}
-    .rank-pos{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#1e1e1e;width:26px;text-align:center;flex-shrink:0;}
-    .rank-pos.p1{color:#FFD700;} .rank-pos.p2{color:#B0B0B0;} .rank-pos.p3{color:#A07040;}
-    .rank-nm{font-size:13px;font-weight:600;color:#bbb;flex:1;}
-    .rank-me-tag{font-size:9px;color:${GOLD};margin-left:5px;font-weight:700;letter-spacing:1px;}
-    .rank-bet{font-size:10px;color:#222;margin-top:2px;letter-spacing:.5px;}
-    .rank-pts{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:${GOLD};text-align:right;line-height:1;}
-    .rank-pts-u{font-size:8px;color:#2a2a2a;letter-spacing:2px;text-transform:uppercase;text-align:right;}
-    .rank-empty{padding:40px 14px;text-align:center;font-size:11px;color:#222;letter-spacing:3px;}
-
-    /* QR */
-    .qr-page{padding:24px 14px;max-width:400px;margin:0 auto;text-align:center;}
-    .qr-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:1px;margin-bottom:4px;}
-    .qr-title span{color:${GOLD};}
-    .qr-sub{font-size:12px;color:#3a3a3a;letter-spacing:1px;margin-bottom:28px;}
-    .qr-box{background:#0a0a0a;border:1px solid #1e1e1e;border-top:2px solid ${GOLD};padding:28px;display:inline-block;margin-bottom:20px;}
-    .qr-url{font-size:11px;color:#444;letter-spacing:1px;word-break:break-all;padding:10px 14px;background:#080808;border:1px solid #141414;margin-bottom:16px;}
-    .qr-copy{background:${GOLD};color:#0d0d0d;border:none;padding:12px 24px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:2px;cursor:pointer;}
-    .qr-copy.copied{background:#0a180a;color:#3aaa3a;}
-    .qr-hint{font-size:11px;color:#2a2a2a;margin-top:16px;letter-spacing:1px;}
-
-    /* ADMIN */
-    .admin-pg{max-width:480px;margin:0 auto;padding:16px 14px;}
-    .admin-ttl{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:${GOLD};letter-spacing:1px;margin-bottom:4px;}
-    .admin-meta{font-size:11px;color:#2a2a2a;letter-spacing:1px;margin-bottom:16px;}
-    .admin-meta strong{color:#444;}
-    .admin-tabs{display:flex;gap:0;border-bottom:1px solid #1a1a1a;margin-bottom:16px;}
-    .admin-tab{background:none;border:none;color:#2a2a2a;padding:10px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;}
-    .admin-tab.on{color:${GOLD};border-bottom-color:${GOLD};}
-    .admin-block{background:#0d0d0d;border:1px solid #1a1a1a;border-top:2px solid ${GOLD_DIM};padding:14px;margin-bottom:12px;}
-    .admin-gname{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:#ddd;letter-spacing:.5px;margin-bottom:4px;}
-    .admin-gmeta{font-size:10px;color:#2a2a2a;letter-spacing:1px;margin-bottom:12px;}
-    .admin-entry{display:flex;align-items:center;gap:8px;}
-    .admin-tlbl{font-size:11px;color:#444;flex:1;}
-    .admin-tlbl.r{text-align:right;}
-    .admin-sin{width:50px;height:46px;background:#080808;border:1px solid #1e1e1e;color:#fff;font-size:24px;font-weight:900;text-align:center;outline:none;font-family:'Barlow Condensed',sans-serif;border-radius:0;-moz-appearance:textfield;}
-    .admin-sin::-webkit-outer-spin-button,.admin-sin::-webkit-inner-spin-button{-webkit-appearance:none;}
-    .admin-sin:focus{border-color:${GOLD};}
-    .admin-dash{color:#1e1e1e;font-size:22px;font-weight:900;font-family:'Barlow Condensed',sans-serif;}
-    .admin-sv{background:${GOLD};color:#0d0d0d;border:none;padding:9px 18px;margin-top:12px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;letter-spacing:2px;cursor:pointer;border-radius:0;}
-    .admin-sv:hover{filter:brightness(1.1);}
-    .admin-sv.saved{background:#0a180a;color:#3aaa3a;}
-
-    /* Prize edit */
-    .prize-edit-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
-    .prize-edit-ico{width:44px;height:44px;background:#080808;border:1px solid #1e1e1e;color:#fff;font-size:22px;text-align:center;outline:none;font-family:'Barlow',sans-serif;}
-    .prize-edit-txt{flex:1;background:#080808;border:1px solid #1e1e1e;color:#fff;padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;}
-    .prize-edit-ico:focus,.prize-edit-txt:focus{border-color:${GOLD};}
-
-    /* Toggle */
-    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#0d0d0d;border:1px solid #1a1a1a;margin-bottom:8px;}
-    .toggle-info{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#ccc;}
-    .toggle-info small{display:block;font-size:10px;color:#333;font-family:'Barlow',sans-serif;font-weight:400;letter-spacing:1px;margin-top:2px;}
-    .toggle-btn{width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
-    .toggle-btn.on{background:${GOLD};}
-    .toggle-btn.off{background:#222;}
-    .toggle-knob{position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;}
-    .toggle-btn.on .toggle-knob{left:23px;}
-    .toggle-btn.off .toggle-knob{left:3px;}
-
-    .field-label{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:#3a3a3a;text-transform:uppercase;margin-bottom:8px;}
-    .text-input{width:100%;background:#0a0a0a;border:1px solid #222;color:#fff;padding:14px 16px;font-family:'Barlow',sans-serif;font-size:15px;outline:none;transition:border .2s;border-radius:0;}
-    .text-input:focus{border-color:${GOLD};}
-    .text-input::placeholder{color:#2a2a2a;}
-    .gold-btn{width:100%;margin-top:10px;background:${GOLD};color:#0d0d0d;border:none;padding:15px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border-radius:0;transition:filter .15s;}
-    .gold-btn:hover:not(:disabled){filter:brightness(1.08);}
-    .gold-btn:disabled{background:#181818;color:#2a2a2a;cursor:not-allowed;}
+    .tnm{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#aaa;letter-spacing:.5px;text-transform:uppercase;}
+    .vsb{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 8px;}
+    .vsl{width:1px;height:18px;background:#1a1a1a;}
+    .vst{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:#1e1e1e;letter-spacing:2px;}
+    .sp{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:300;letter-spacing:4px;color:#2a2a2a;text-transform:uppercase;text-align:center;margin-bottom:10px;}
+    .sr{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;}
+    .si{width:70px;height:70px;background:#080808;border:1px solid #1e1e1e;color:#fff;font-size:38px;font-weight:900;text-align:center;outline:none;font-family:'Barlow Condensed',sans-serif;transition:border .15s;-moz-appearance:textfield;border-radius:0;}
+    .si::-webkit-outer-spin-button,.si::-webkit-inner-spin-button{-webkit-appearance:none;}
+    .si:focus{border-color:${GOLD};box-shadow:0 0 0 2px rgba(200,168,75,.08);}
+    .si:disabled{opacity:.25;cursor:not-allowed;}
+    .ssep{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;color:#1a1a1a;}
+    .pr{display:flex;align-items:center;gap:10px;border-top:1px solid #141414;padding-top:14px;margin-bottom:14px;}
+    .pi{width:34px;height:34px;background:#080808;border:1px solid #1e1e1e;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+    .pl{font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;font-weight:700;}
+    .pn{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:${GOLD};line-height:1;margin-top:1px;}
+    .ab{width:100%;background:${GOLD};color:#0d0d0d;border:none;padding:14px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:filter .15s;border-radius:0;}
+    .ab:hover:not(:disabled){filter:brightness(1.1);}
+    .ab:disabled{background:#111;color:#222;cursor:not-allowed;}
+    .ab.saved{background:#0a180a;color:#3aaa3a;border:1px solid #143014;}
+    .ab.ghost{background:#0a0a0a;color:#333;border:1px solid #141414;cursor:default;font-size:12px;letter-spacing:1px;}
+    .pb{background:#080808;border:1px solid #141414;}
+    .phd{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:#2a2a2a;text-transform:uppercase;padding:10px 14px 6px;border-bottom:1px solid #0f0f0f;}
+    .pr2{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #0f0f0f;}
+    .pr2:last-child{border-bottom:none;}
+    .pd{font-size:12px;color:#333;}
+    .pv{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:${GOLD};}
+    .rh{background:linear-gradient(180deg,#0f0c00,#0a0a0a);border-bottom:1px solid #141414;padding:14px;position:relative;overflow:hidden;}
+    .rgn{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#fff;letter-spacing:.5px;text-transform:uppercase;position:relative;z-index:1;}
+    .rgn span{color:${GOLD};}
+    .rm{font-size:10px;color:#2a2a2a;letter-spacing:1px;margin-top:3px;position:relative;z-index:1;}
+    .rc{display:inline-flex;align-items:center;gap:10px;background:#0d0b00;border:1px solid #2a2000;padding:6px 12px;margin-top:10px;position:relative;z-index:1;}
+    .rl{font-size:9px;color:#555;letter-spacing:2px;text-transform:uppercase;font-family:'Barlow Condensed',sans-serif;}
+    .rs{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:${GOLD};}
+    .rrow{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #0d0d0d;}
+    .rrow:last-child{border-bottom:none;}
+    .rrow.me{background:#0c0a00;border-left:2px solid ${GOLD};}
+    .rpos{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#1e1e1e;width:26px;text-align:center;flex-shrink:0;}
+    .rpos.p1{color:#FFD700;}.rpos.p2{color:#B0B0B0;}.rpos.p3{color:#A07040;}
+    .rnm{font-size:13px;font-weight:600;color:#bbb;flex:1;}
+    .rmt{font-size:9px;color:${GOLD};margin-left:5px;font-weight:700;letter-spacing:1px;}
+    .rbet{font-size:10px;color:#222;margin-top:2px;}
+    .rpts{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:${GOLD};text-align:right;line-height:1;}
+    .rptu{font-size:8px;color:#2a2a2a;letter-spacing:2px;text-transform:uppercase;text-align:right;}
+    .rempty{padding:40px 14px;text-align:center;font-size:11px;color:#222;letter-spacing:3px;}
+    .adpg{max-width:480px;margin:0 auto;padding:16px 14px;}
+    .adttl{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:${GOLD};letter-spacing:1px;margin-bottom:4px;}
+    .admet{font-size:11px;color:#2a2a2a;letter-spacing:1px;margin-bottom:16px;}
+    .admet strong{color:#444;}
+    .adtabs{display:flex;gap:0;border-bottom:1px solid #1a1a1a;margin-bottom:16px;}
+    .adtab{background:none;border:none;color:#2a2a2a;padding:10px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;}
+    .adtab.on{color:${GOLD};border-bottom-color:${GOLD};}
+    .adbl{background:#0d0d0d;border:1px solid #1a1a1a;border-top:2px solid ${GOLD_DIM};padding:14px;margin-bottom:12px;}
+    .adgn{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:#ddd;margin-bottom:4px;}
+    .adgm{font-size:10px;color:#2a2a2a;letter-spacing:1px;margin-bottom:12px;}
+    .aden{display:flex;align-items:center;gap:8px;}
+    .adtl{font-size:11px;color:#444;flex:1;}
+    .adtl.r{text-align:right;}
+    .adin{width:50px;height:46px;background:#080808;border:1px solid #1e1e1e;color:#fff;font-size:24px;font-weight:900;text-align:center;outline:none;font-family:'Barlow Condensed',sans-serif;border-radius:0;-moz-appearance:textfield;}
+    .adin::-webkit-outer-spin-button,.adin::-webkit-inner-spin-button{-webkit-appearance:none;}
+    .adin:focus{border-color:${GOLD};}
+    .addash{color:#1e1e1e;font-size:22px;font-weight:900;font-family:'Barlow Condensed',sans-serif;}
+    .adsv{background:${GOLD};color:#0d0d0d;border:none;padding:9px 18px;margin-top:12px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;letter-spacing:2px;cursor:pointer;border-radius:0;}
+    .adsv:hover{filter:brightness(1.1);}
+    .adsv.saved{background:#0a180a;color:#3aaa3a;}
+    .per{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+    .pei{width:44px;height:44px;background:#080808;border:1px solid #1e1e1e;color:#fff;font-size:22px;text-align:center;outline:none;font-family:'Barlow',sans-serif;}
+    .pet{flex:1;background:#080808;border:1px solid #1e1e1e;color:#fff;padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;}
+    .pei:focus,.pet:focus{border-color:${GOLD};}
+    .trow{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#0d0d0d;border:1px solid #1a1a1a;margin-bottom:8px;}
+    .tinf{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#ccc;}
+    .tinf small{display:block;font-size:10px;color:#333;font-family:'Barlow',sans-serif;font-weight:400;letter-spacing:1px;margin-top:2px;}
+    .tbtn{width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+    .tbtn.on{background:${GOLD};}.tbtn.off{background:#222;}
+    .tknob{position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;}
+    .tbtn.on .tknob{left:23px;}.tbtn.off .tknob{left:3px;}
+    .fl{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:#3a3a3a;text-transform:uppercase;margin-bottom:8px;}
+    .ti{width:100%;background:#0a0a0a;border:1px solid #222;color:#fff;padding:14px 16px;font-family:'Barlow',sans-serif;font-size:15px;outline:none;transition:border .2s;border-radius:0;}
+    .ti:focus{border-color:${GOLD};}
+    .ti::placeholder{color:#2a2a2a;}
+    .gb{width:100%;margin-top:10px;background:${GOLD};color:#0d0d0d;border:none;padding:15px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border-radius:0;}
+    .gb:hover:not(:disabled){filter:brightness(1.08);}
+    .gb:disabled{background:#181818;color:#2a2a2a;cursor:not-allowed;}
     .err{color:#883333;font-size:12px;margin-top:8px;letter-spacing:1px;}
+    /* Admin bets table */
+    .bets-table{width:100%;border-collapse:collapse;margin-top:10px;}
+    .bets-table th{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:#555;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid #1a1a1a;text-align:left;}
+    .bets-table td{font-size:12px;color:#888;padding:7px 10px;border-bottom:1px solid #0f0f0f;}
+    .bets-table tr:last-child td{border-bottom:none;}
+    .bets-table td.score{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:${GOLD};}
   `;
 
   // LOGIN
@@ -431,17 +421,15 @@ export default function App() {
       <div style={{position:"relative",zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:300,letterSpacing:6,color:"#444",textTransform:"uppercase",marginBottom:28,textAlign:"center"}}>Copa do Mundo · México</div>
         <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:6}}>
-          <XPBox size={56}/>
-          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:"#fff",letterSpacing:-1,lineHeight:.9,textTransform:"uppercase"}}>Insurance<br/>Experience</div>
-          <Shield w={70} h={80} glow/>
+          <XPBox size={56}/><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:52,fontWeight:900,color:"#fff",letterSpacing:-1,lineHeight:.9,textTransform:"uppercase"}}>Insurance<br/>Experience</div><Shield w={70} h={80} glow/>
         </div>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:44,fontWeight:900,fontStyle:"italic",color:GOLD,letterSpacing:4,marginBottom:8}}>2026</div>
         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:300,letterSpacing:5,color:"#2e2e2e",textTransform:"uppercase",marginBottom:32}}>Bolão Oficial</div>
         <div style={{width:240,height:1,background:`linear-gradient(90deg,transparent,${GOLD},transparent)`,opacity:.35,marginBottom:32}}/>
         <div style={{width:"100%",maxWidth:300}}>
-          <div className="field-label">Seu nome</div>
-          <input className="text-input" placeholder="Como aparecer no ranking" value={nameInput} onChange={e=>setNameInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} autoFocus/>
-          <button className="gold-btn" onClick={handleLogin} disabled={!nameInput.trim()}>Entrar no bolão</button>
+          <div className="fl">Seu nome</div>
+          <input className="ti" placeholder="Como aparecer no ranking" value={nameInput} onChange={e=>setNameInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} autoFocus/>
+          <button className="gb" onClick={handleLogin} disabled={!nameInput.trim()}>Entrar no bolão</button>
         </div>
         <div style={{marginTop:24,fontSize:10,color:"#222",textAlign:"center",letterSpacing:3,fontFamily:"'Barlow Condensed',sans-serif"}}>
           {totalP>0?<><span style={{color:GOLD_DIM,fontWeight:700}}>{totalP}</span> PARTICIPANTE{totalP>1?"S":""} JÁ APOSTARAM</>:"SEJA O PRIMEIRO A APOSTAR"}
@@ -451,21 +439,19 @@ export default function App() {
   );
 
   return (
-    <div style={{minHeight:"100vh",background:"#0d0d0d",position:"relative"}}>
+    <div style={{minHeight:"100vh",background:"#0d0d0d"}}>
       <style>{css}</style>
       <div className="header">
         <div className="header-brand">
-          <XPBox size={28}/>
-          <div className="header-divider"/>
-          <Shield w={22} h={25}/>
+          <XPBox size={28}/><div className="hdiv"/><Shield w={22} h={25}/>
           <div style={{marginLeft:6}}>
-            <div className="header-wm">Insurance <em>Experience</em></div>
-            <div className="header-sub">2026 · Copa do Mundo · México</div>
+            <div className="hwm">Insurance <em>Experience</em></div>
+            <div className="hsub">2026 · Copa do Mundo · {userName && <span style={{color:GOLD_DIM}}>Olá, {userName.split(" ")[0]}!</span>}</div>
           </div>
         </div>
         <div className="nav">
-          {[["bets","Apostas"],["ranking","Ranking"],["qr","QR Code"],["admin","Admin"]].map(([s,l])=>(
-            <button key={s} className={`nav-btn${screen===s?" on":""}`} onClick={()=>setScreen(s)}>{l}</button>
+          {[["bets","Apostas"],["ranking","Ranking"],["qr","QR"],["admin","Admin"]].map(([s,l])=>(
+            <button key={s} className={`nb${screen===s?" on":""}`} onClick={()=>setScreen(s)}>{l}</button>
           ))}
         </div>
       </div>
@@ -480,44 +466,44 @@ export default function App() {
               </button>
             ))}
           </div>
-          {cGame && (()=>{
+          {cGame&&(()=>{
             const game=cGame, closed=isGameClosed(game);
-            const bet=bets[game.id]||{}, saved=savedGames[game.id];
+            const bet=myBets[game.id]||{}, saved=savedMap[game.id];
             const hasBet=bet.homeScore!==undefined&&bet.awayScore!==undefined&&bet.homeScore!==""&&bet.awayScore!=="";
             return(
               <div className="page">
-                <div className="game-card">
-                  <div className="card-glow"/>
-                  <div className="game-head">
-                    <div><div className="game-lbl">{game.label}</div><div className="game-venue" style={{marginTop:3}}>{game.venue}</div></div>
-                    {closed?<div className="badge-closed">🔒 ENCERRADO</div>:<div className="game-date">{formatDate(game.date)}</div>}
+                <div className="gc">
+                  <div className="gcg"/>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+                    <div><div className="glbl">{game.label}</div><div className="gven">{game.venue}</div></div>
+                    {closed?<div className="bclosed">🔒 ENCERRADO</div>:<div className="gdate">{formatDate(game.date)}</div>}
                   </div>
-                  <div className="matchup">
-                    <div className="team"><div className="flag">{game.homeflag}</div><div className="team-nm">{game.home}</div></div>
-                    <div className="vs-block"><div className="vs-ln"/><div className="vs-tx">VS</div><div className="vs-ln"/></div>
-                    <div className="team"><div className="flag">{game.awayflag}</div><div className="team-nm">{game.away}</div></div>
+                  <div className="mu">
+                    <div className="team"><div className="flag">{game.homeflag}</div><div className="tnm">{game.home}</div></div>
+                    <div className="vsb"><div className="vsl"/><div className="vst">VS</div><div className="vsl"/></div>
+                    <div className="team"><div className="flag">{game.awayflag}</div><div className="tnm">{game.away}</div></div>
                   </div>
-                  <div className="score-prompt">Seu palpite de placar</div>
-                  <div className="score-row">
-                    <input className="score-in" type="number" min="0" max="99" placeholder="—" value={bet.homeScore??""} onChange={e=>updateBet(game.id,"homeScore",e.target.value)} disabled={closed}/>
-                    <div className="score-sep">×</div>
-                    <input className="score-in" type="number" min="0" max="99" placeholder="—" value={bet.awayScore??""} onChange={e=>updateBet(game.id,"awayScore",e.target.value)} disabled={closed}/>
+                  <div className="sp">Seu palpite de placar</div>
+                  <div className="sr">
+                    <input className="si" type="number" min="0" max="99" placeholder="—" value={bet.homeScore??""} onChange={e=>updateBet(game.id,"homeScore",e.target.value)} disabled={closed}/>
+                    <div className="ssep">×</div>
+                    <input className="si" type="number" min="0" max="99" placeholder="—" value={bet.awayScore??""} onChange={e=>updateBet(game.id,"awayScore",e.target.value)} disabled={closed}/>
                   </div>
-                  <div className="prize-row">
-                    <div className="prize-ico">{game.prizeIcon}</div>
-                    <div><div className="prize-lbl">Prêmio deste jogo</div><div className="prize-nm">{game.prize}</div></div>
+                  <div className="pr">
+                    <div className="pi">{game.prizeIcon}</div>
+                    <div><div className="pl">Prêmio deste jogo</div><div className="pn">{game.prize}</div></div>
                   </div>
                   {!closed
-                    ?<button className={`action-btn${saved?" saved":""}`} onClick={()=>handleSaveBet(game.id)} disabled={!hasBet||saving}>
+                    ?<button className={`ab${saved?" saved":""}`} onClick={()=>handleSaveBet(game.id)} disabled={!hasBet||saving}>
                       {saving?"Salvando...":saved?"✓ Aposta registrada!":hasBet?"Confirmar aposta":"Digite o placar para apostar"}
                     </button>
-                    :<div className="action-btn ghost">{hasBet?`Sua aposta: ${bet.homeScore} × ${bet.awayScore}`:"Você não apostou neste jogo"}</div>
+                    :<div className="ab ghost">{hasBet?`Sua aposta: ${bet.homeScore} × ${bet.awayScore}`:"Você não apostou neste jogo"}</div>
                   }
                 </div>
-                <div className="pts-box">
-                  <div className="pts-hd">Sistema de Pontuação</div>
+                <div className="pb">
+                  <div className="phd">Sistema de Pontuação</div>
                   {[["Placar exato","3 pts"],["Vencedor / empate","1 pt"],["Total de gols correto","+1 pt"],["Máximo por jogo","5 pts"]].map(([d,v])=>(
-                    <div key={d} className="pts-r"><span className="pts-d">{d}</span><span className="pts-v">{v}</span></div>
+                    <div key={d} className="pr2"><span className="pd">{d}</span><span className="pv">{v}</span></div>
                   ))}
                 </div>
               </div>
@@ -538,28 +524,29 @@ export default function App() {
           </div>
           {cRank&&(()=>{
             const game=cRank, ranking=getRanking(game.id);
-            const hasResult=results[game.id]?.homeScore!==undefined&&results[game.id]?.homeScore!=="";
+            const res=results[game.id]||{};
+            const hasResult=res.homeScore!==undefined&&res.homeScore!=="";
             return(
               <>
-                <div className="rank-hero">
+                <div className="rh">
                   <div style={{position:"absolute",inset:0,pointerEvents:"none",opacity:.6}}><ConstellationBg width={500} height={120}/></div>
-                  <div className="rank-game-nm">{game.homeflag} {game.home} <span>×</span> {game.away} {game.awayflag}</div>
-                  <div className="rank-meta">{game.venue} · {formatDate(game.date)} · Prêmio: {game.prizeIcon} {game.prize}</div>
-                  {hasResult&&<div className="result-chip"><div className="result-lbl">Resultado</div><div className="result-sc">{results[game.id].homeScore} × {results[game.id].awayScore}</div></div>}
-                  {!hasResult&&isGameClosed(game)&&<div className="rank-pending">AGUARDANDO RESULTADO...</div>}
+                  <div className="rgn">{game.homeflag} {game.home} <span>×</span> {game.away} {game.awayflag}</div>
+                  <div className="rm">{game.venue} · {formatDate(game.date)} · Prêmio: {game.prizeIcon} {game.prize}</div>
+                  {hasResult&&<div className="rc"><div className="rl">Resultado</div><div className="rs">{res.homeScore} × {res.awayScore}</div></div>}
+                  {!hasResult&&isGameClosed(game)&&<div style={{fontSize:10,color:"#2a2a2a",letterSpacing:2,marginTop:10,position:"relative",zIndex:1}}>AGUARDANDO RESULTADO...</div>}
                 </div>
                 <div style={{maxWidth:480,margin:"0 auto"}}>
                   {ranking.length===0
-                    ?<div className="rank-empty">NENHUMA APOSTA REGISTRADA</div>
+                    ?<div className="rempty">NENHUMA APOSTA REGISTRADA</div>
                     :ranking.map((e,i)=>(
-                      <div key={e.name} className={`rank-row${e.name===userName?" me":""}`}>
-                        <div className={`rank-pos${i===0?" p1":i===1?" p2":i===2?" p3":""}`}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div>
+                      <div key={e.name} className={`rrow${e.name===userName?" me":""}`}>
+                        <div className={`rpos${i===0?" p1":i===1?" p2":i===2?" p3":""}`}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div>
                         <div style={{flex:1}}>
-                          <div className="rank-nm">{e.name}{e.name===userName&&<span className="rank-me-tag">• você</span>}</div>
-                          <div className="rank-bet">Apostou: {e.bet.homeScore} × {e.bet.awayScore}</div>
+                          <div className="rnm">{e.name}{e.name===userName&&<span className="rmt">• você</span>}</div>
+                          <div className="rbet">Apostou: {e.bet.homeScore} × {e.bet.awayScore}</div>
                         </div>
                         <div>
-                          {hasResult&&e.pts!==null?<><div className="rank-pts">{e.pts}</div><div className="rank-pts-u">PTS</div></>:<div style={{color:"#1a1a1a",fontSize:20,fontFamily:"'Barlow Condensed',sans-serif"}}>—</div>}
+                          {hasResult&&e.pts!==null?<><div className="rpts">{e.pts}</div><div className="rptu">PTS</div></>:<div style={{color:"#1a1a1a",fontSize:20,fontFamily:"'Barlow Condensed',sans-serif"}}>—</div>}
                         </div>
                       </div>
                     ))
@@ -570,29 +557,30 @@ export default function App() {
           })()}
         </>
       )}
-      {/* QR CODE */}
+
+      {/* QR */}
       {screen==="qr"&&<QRScreen appUrl={appUrl}/>}
 
       {/* ADMIN */}
       {screen==="admin"&&(
-        <div className="admin-pg">
+        <div className="adpg">
           {!adminUnlocked?(
             <>
-              <div className="admin-ttl">🔐 Admin</div>
+              <div className="adttl">🔐 Admin</div>
               <div style={{background:"#0a0a0a",border:"1px solid #1a1a1a",padding:18,maxWidth:300}}>
-                <div className="field-label">Senha</div>
-                <input className="text-input" type="password" placeholder="••••••" value={adminPass} onChange={e=>setAdminPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAdminLogin()}/>
+                <div className="fl">Senha</div>
+                <input className="ti" type="password" placeholder="••••••" value={adminPass} onChange={e=>setAdminPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAdminLogin()}/>
                 {adminError&&<div className="err">{adminError}</div>}
-                <button className="gold-btn" onClick={handleAdminLogin} style={{marginTop:10}}>Entrar</button>
+                <button className="gb" onClick={handleAdminLogin} style={{marginTop:10}}>Entrar</button>
               </div>
             </>
           ):(
             <>
-              <div className="admin-ttl">Painel Admin</div>
-              <div className="admin-meta"><strong>{totalP}</strong> participantes · <strong>{Object.values(allBets).reduce((a,b)=>a+Object.keys(b).length,0)}</strong> apostas</div>
-              <div className="admin-tabs">
-                {[["results","Resultados"],["prizes","Prêmios"],["games","Jogos"]].map(([t,l])=>(
-                  <button key={t} className={`admin-tab${adminTab===t?" on":""}`} onClick={()=>setAdminTab(t)}>{l}</button>
+              <div className="adttl">Painel Admin</div>
+              <div className="admet"><strong>{totalP}</strong> participantes · <strong>{Object.values(allBets).reduce((a,b)=>a+Object.keys(b).length,0)}</strong> apostas</div>
+              <div className="adtabs">
+                {[["results","Resultados"],["bets","Apostas"],["prizes","Prêmios"],["games","Jogos"]].map(([t,l])=>(
+                  <button key={t} className={`adtab${adminTab===t?" on":""}`} onClick={()=>setAdminTab(t)}>{l}</button>
                 ))}
               </div>
 
@@ -601,19 +589,62 @@ export default function App() {
                 const res=results[game.id]||{};
                 const count=Object.values(allBets).filter(b=>b[game.id]).length;
                 return(
-                  <div key={game.id} className="admin-block">
-                    <div className="admin-gname">{game.homeflag} {game.home} × {game.away} {game.awayflag}</div>
-                    <div className="admin-gmeta">{count} APOSTAS · {game.venue}</div>
-                    <div className="admin-entry">
-                      <div className="admin-tlbl">{game.home}</div>
-                      <input className="admin-sin" type="number" min="0" placeholder="—" value={res.homeScore??""} onChange={e=>updateResult(game.id,"homeScore",e.target.value)}/>
-                      <div className="admin-dash">×</div>
-                      <input className="admin-sin" type="number" min="0" placeholder="—" value={res.awayScore??""} onChange={e=>updateResult(game.id,"awayScore",e.target.value)}/>
-                      <div className="admin-tlbl r">{game.away}</div>
+                  <div key={game.id} className="adbl">
+                    <div className="adgn">{game.homeflag} {game.home} × {game.away} {game.awayflag}</div>
+                    <div className="adgm">{count} APOSTAS · {game.venue}</div>
+                    <div className="aden">
+                      <div className="adtl">{game.home}</div>
+                      <input className="adin" type="number" min="0" placeholder="—"
+                        value={res.homeScore??""} onChange={e=>setResults(r=>({...r,[game.id]:{...(r[game.id]||{}),"homeScore":e.target.value.replace(/\D/g,"").slice(0,2)}}))}/>
+                      <div className="addash">×</div>
+                      <input className="adin" type="number" min="0" placeholder="—"
+                        value={res.awayScore??""} onChange={e=>setResults(r=>({...r,[game.id]:{...(r[game.id]||{}),"awayScore":e.target.value.replace(/\D/g,"").slice(0,2)}}))}/>
+                      <div className="adtl r">{game.away}</div>
                     </div>
-                    <button className={`admin-sv${savedGames[`r_${game.id}`]?" saved":""}`} onClick={()=>handleSaveResult(game.id)}>
-                      {savedGames[`r_${game.id}`]?"✓ Publicado":"Publicar resultado"}
+                    <button className={`adsv${savedMap[`r_${game.id}`]?" saved":""}`}
+                      onClick={()=>handleSaveResult(game.id, results[game.id]||{})}>
+                      {savedMap[`r_${game.id}`]?"✓ Publicado":"Publicar resultado"}
                     </button>
+                  </div>
+                );
+              })}
+
+              {/* TODAS AS APOSTAS */}
+              {adminTab==="bets"&&activeGames.map(game=>{
+                const count=Object.values(allBets).filter(b=>b[game.id]).length;
+                return(
+                  <div key={game.id} className="adbl">
+                    <div className="adgn">{game.homeflag} {game.home} × {game.away} {game.awayflag}</div>
+                    <div className="adgm">{count} APOSTAS · {game.prizeIcon} {game.prize}</div>
+                    {count===0
+                      ?<div style={{fontSize:11,color:"#333",letterSpacing:1}}>Nenhuma aposta ainda</div>
+                      :<table className="bets-table">
+                        <thead><tr><th>Participante</th><th>Palpite</th><th>Pts</th></tr></thead>
+                        <tbody>
+                          {Object.entries(allBets)
+                            .filter(([,b])=>b[game.id])
+                            .sort((a,b)=>{
+                              const pa=calcPoints(a[1][game.id],results[game.id]);
+                              const pb=calcPoints(b[1][game.id],results[game.id]);
+                              if(pa===null&&pb===null) return 0;
+                              if(pa===null) return 1; if(pb===null) return -1;
+                              return pb-pa;
+                            })
+                            .map(([name,bets])=>{
+                              const bet=bets[game.id];
+                              const pts=calcPoints(bet,results[game.id]);
+                              return(
+                                <tr key={name}>
+                                  <td>{name}</td>
+                                  <td className="score">{bet.homeScore} × {bet.awayScore}</td>
+                                  <td className="score">{pts!==null?pts:"—"}</td>
+                                </tr>
+                              );
+                            })
+                          }
+                        </tbody>
+                      </table>
+                    }
                   </div>
                 );
               })}
@@ -622,39 +653,35 @@ export default function App() {
               {adminTab==="prizes"&&(
                 <>
                   {games.map(game=>(
-                    <div key={game.id} className="admin-block">
-                      <div className="admin-gname">{game.label} — {game.homeflag} {game.home} × {game.away} {game.awayflag}</div>
-                      <div className="admin-gmeta" style={{marginBottom:10}}>Edite o prêmio deste jogo</div>
-                      <div className="prize-edit-row">
-                        <input className="prize-edit-ico" value={game.prizeIcon} onChange={e=>updateGamePrize(game.id,"prizeIcon",e.target.value)} maxLength={2} title="Emoji do prêmio"/>
-                        <input className="prize-edit-txt" value={game.prize} onChange={e=>updateGamePrize(game.id,"prize",e.target.value)} placeholder="Nome do prêmio"/>
+                    <div key={game.id} className="adbl">
+                      <div className="adgn">{game.label} — {game.homeflag} {game.home} × {game.away}</div>
+                      <div className="per">
+                        <input className="pei" value={game.prizeIcon} onChange={e=>updateGamePrize(game.id,"prizeIcon",e.target.value)} maxLength={2}/>
+                        <input className="pet" value={game.prize} onChange={e=>updateGamePrize(game.id,"prize",e.target.value)} placeholder="Nome do prêmio"/>
                       </div>
                     </div>
                   ))}
-                  <button className={`admin-sv${savedGames.prizes?" saved":""}`} style={{width:"100%",padding:14,fontSize:15}} onClick={saveGamePrizes}>
-                    {savedGames.prizes?"✓ Prêmios salvos!":"Salvar todos os prêmios"}
+                  <button className={`adsv${savedMap.prizes?" saved":""}`} style={{width:"100%",padding:14,fontSize:15}} onClick={saveGamePrizes}>
+                    {savedMap.prizes?"✓ Prêmios salvos!":"Salvar todos os prêmios"}
                   </button>
                 </>
               )}
 
-              {/* JOGOS ATIVOS */}
+              {/* JOGOS */}
               {adminTab==="games"&&(
                 <>
                   <div style={{fontSize:11,color:"#333",letterSpacing:1,marginBottom:12}}>ATIVE OU DESATIVE JOGOS DO BOLÃO</div>
                   {games.map(game=>(
-                    <div key={game.id} className="toggle-row">
-                      <div className="toggle-info">
+                    <div key={game.id} className="trow">
+                      <div className="tinf">
                         {game.homeflag} {game.home} × {game.away} {game.awayflag}
                         <small>{game.label} · {game.prizeIcon} {game.prize}</small>
                       </div>
-                      <button className={`toggle-btn${game.active?" on":" off"}`} onClick={()=>toggleGame(game.id)}>
-                        <div className="toggle-knob"/>
+                      <button className={`tbtn${game.active?" on":" off"}`} onClick={()=>toggleGame(game.id)}>
+                        <div className="tknob"/>
                       </button>
                     </div>
                   ))}
-                  <div style={{fontSize:10,color:"#222",letterSpacing:1,marginTop:12,textAlign:"center"}}>
-                    Jogos desativados não aparecem para os participantes
-                  </div>
                 </>
               )}
             </>
