@@ -198,10 +198,8 @@ export default function App() {
     setSaving(true);
     try {
       const betsWithTs = {...myBets};
-      if (!betsWithTs[gameId].timestamp) {
-        betsWithTs[gameId] = {...betsWithTs[gameId], timestamp: Date.now()};
-        setMyBets(betsWithTs);
-      }
+      betsWithTs[gameId] = {...betsWithTs[gameId], timestamp: Date.now()};
+      setMyBets(betsWithTs);
       await setDoc(doc(db,"bets",userName),{bets:betsWithTs},{merge:true});
       setSavedMap(s=>({...s,[gameId]:true}));
       setTimeout(()=>setSavedMap(s=>({...s,[gameId]:false})),2500);
