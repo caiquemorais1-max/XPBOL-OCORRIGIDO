@@ -561,11 +561,11 @@ export default function App() {
                   </div>
                   <div className="prz">
                     <div className="przico">{game.prizeIcon}</div>
-                    <div>
+                    <div style={{flex:1}}>
                       <div className="przlbl">Prêmio deste jogo</div>
-                      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                        <div className="prznm">{game.prize}</div>
-                        {game.sponsorImg&&<img src={game.sponsorImg} style={{height:16,width:"auto",verticalAlign:"middle",display:"inline-block"}} alt={game.sponsor}/>}
+                      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginTop:2}}>
+                        <div className="prznm" style={{lineHeight:1}}>{game.prize}</div>
+                        {game.sponsorImg&&<img src={game.sponsorImg} style={{height:18,width:"auto",display:"block",marginTop:2}} alt={game.sponsor}/>}
                       </div>
                     </div>
                   </div>
