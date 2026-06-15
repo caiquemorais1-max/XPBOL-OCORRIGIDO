@@ -380,6 +380,9 @@ export default function App() {
     .rkrow{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #0a0a0a;}
     .rkrow:last-child{border-bottom:none;}
     .rkrow.me{background:#0a0800;border-left:2px solid ${GOLD};}
+    .rkrow.winner{background:linear-gradient(90deg,#1a1400,#0d0d0d);border-left:3px solid #FFD700;border-top:1px solid #2a2000;border-bottom:1px solid #2a2000;}
+    .rkrow.winner .rknm{color:#FFD700;font-weight:900;}
+    .winner-crown{font-size:18px;margin-left:6px;vertical-align:middle;}
     .rkpos{font-family:'XP Lighthouse','XP Variable',sans-serif;font-size:22px;font-weight:900;color:#444;width:28px;text-align:center;flex-shrink:0;}
     .rkpos.p1{color:#FFD700;}.rkpos.p2{color:#A0A0A0;}.rkpos.p3{color:#906030;}
     .rknm{font-size:14px;font-weight:600;color:#aaa;flex:1;}
@@ -618,10 +621,14 @@ export default function App() {
                   {ranking.length===0
                     ?<div className="rkempty">Nenhuma aposta registrada</div>
                     :ranking.map((e,i)=>(
-                      <div key={e.name} className={`rkrow${e.name===userName?" me":""}`}>
+                      <div key={e.name} className={`rkrow${e.name===userName?" me":""}${i===0&&hasResult&&e.pts!==null?" winner":""}`}>
                         <div className={`rkpos${i===0?" p1":i===1?" p2":i===2?" p3":""}`}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div>
                         <div style={{flex:1}}>
-                          <div className="rknm">{e.name}{e.name===userName&&<span className="rkmtag">• você</span>}</div>
+                          <div className="rknm">
+                            {e.name}
+                            {i===0&&hasResult&&e.pts!==null&&<span className="winner-crown">👑</span>}
+                            {e.name===userName&&<span className="rkmtag">• você</span>}
+                          </div>
                           <div className="rkbet">Apostou: {e.bet.homeScore} × {e.bet.awayScore}</div>
                         </div>
                         <div>
