@@ -465,10 +465,10 @@ export default function App() {
       </div>
       <div className="login-sub">Bolão Oficial</div>
 
-      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:36,marginBottom:32,marginTop:8,position:"relative",zIndex:2}}>
-        <img src={SPONSOR_AZQUEST} style={{height:28,width:"auto"}} alt="AZ Quest"/>
-        <img src={SPONSOR_CONSORCIOXP} style={{height:28,width:"auto"}} alt="Consórcio XP"/>
-        <img src={SPONSOR_MAPFRE} style={{height:28,width:"auto"}} alt="Mapfre"/>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20,marginBottom:28,marginTop:8,position:"relative",zIndex:2,flexWrap:"wrap",padding:"0 16px",width:"100%",boxSizing:"border-box"}}>
+        <img src={SPONSOR_AZQUEST} style={{height:22,width:"auto",maxWidth:"26vw",objectFit:"contain"}} alt="AZ Quest"/>
+        <img src={SPONSOR_CONSORCIOXP} style={{height:22,width:"auto",maxWidth:"26vw",objectFit:"contain"}} alt="Consórcio XP"/>
+        <img src={SPONSOR_MAPFRE} style={{height:22,width:"auto",maxWidth:"26vw",objectFit:"contain"}} alt="Mapfre"/>
       </div>
 
 
@@ -563,9 +563,9 @@ export default function App() {
                     <div className="przico">{game.prizeIcon}</div>
                     <div>
                       <div className="przlbl">Prêmio deste jogo</div>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                         <div className="prznm">{game.prize}</div>
-                        {game.sponsorImg&&<img src={game.sponsorImg} style={{height:14,width:"auto"}} alt={game.sponsor}/>}
+                        {game.sponsorImg&&<img src={game.sponsorImg} style={{height:16,width:"auto",verticalAlign:"middle",display:"inline-block"}} alt={game.sponsor}/>}
                       </div>
                     </div>
                   </div>
@@ -611,7 +611,7 @@ export default function App() {
                   <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,position:"relative",zIndex:1}}>
                     <span style={{fontSize:10,color:"#666",letterSpacing:1,textTransform:"uppercase"}}>Prêmio:</span>
                     <span style={{fontSize:11,color:"#aaa"}}>{game.prizeIcon} {game.prize}</span>
-                    {game.sponsorImg&&<img src={game.sponsorImg} style={{height:14,width:"auto",marginLeft:4}} alt={game.sponsor}/>}
+                    {game.sponsorImg&&<img src={game.sponsorImg} style={{height:16,width:"auto",marginLeft:6,verticalAlign:"middle",display:"inline-block"}} alt={game.sponsor}/>}
                   </div>
                   {hasResult&&<div className="rkchip"><div className="rklbl">Resultado</div><div className="rksc">{res.homeScore} × {res.awayScore}</div></div>}
                   {!hasResult&&isGameClosed(game)&&<div style={{fontSize:10,color:"#888",letterSpacing:2,marginTop:10,position:"relative",zIndex:1,textTransform:"uppercase"}}>Aguardando resultado...</div>}
