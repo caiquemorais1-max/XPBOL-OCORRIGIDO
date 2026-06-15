@@ -27,7 +27,7 @@ const SPONSORS_ALL = "data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUND
 
 const DEFAULT_GAMES = [
   { id:"game1", home:"Argentina", away:"Argélia", homeflag:"🇦🇷", awayflag:"🇩🇿", homeabbr:"ARG", awayabbr:"ALG", date:"2026-06-16T19:00:00-06:00", label:"JOGO 1", prize:"Camiseta do Brasil", prizeIcon:"👕", sponsor:"Mapfre Consórcios", sponsorImg:SPONSOR_MAPFRE, venue:"GEHA Field at Arrowhead Stadium — Kansas City", active:true },
-  { id:"game2", home:"Uzbequistão", away:"Colômbia", homeflag:"🇺🇿", awayflag:"🇨🇴", homeabbr:"UZB", awayabbr:"COL", date:"2026-06-18T19:00:00-06:00", label:"JOGO 2", prize:"Apple Watch", prizeIcon:"⌚", sponsor:"AZ Quest", sponsorImg:SPONSOR_AZQUEST, venue:"Estádio Azteca (ao vivo!)", active:true },
+  { id:"game2", home:"Uzbequistão", away:"Colômbia", homeflag:"🇺🇿", awayflag:"🇨🇴", homeabbr:"UZB", awayabbr:"COL", date:"2026-06-17T20:00:00-06:00", label:"JOGO 2", prize:"Apple Watch", prizeIcon:"⌚", sponsor:"AZ Quest", sponsorImg:SPONSOR_AZQUEST, venue:"Estádio Azteca (ao vivo!)", active:true },
   { id:"game3", home:"Brasil", away:"Haiti", homeflag:"🇧🇷", awayflag:"🇭🇹", homeabbr:"BRA", awayabbr:"HAI", date:"2026-06-19T19:30:00-05:00", label:"JOGO 3", prize:"AirPods", prizeIcon:"🎧", sponsor:"Consórcio XP", sponsorImg:SPONSOR_CONSORCIOXP, venue:"Lincoln Financial Field — Filadélfia", active:true },
 ];
 
