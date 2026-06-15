@@ -467,7 +467,7 @@ export default function App() {
       <div className="login-sub">Bolão Oficial</div>
 
       <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20,marginBottom:28,marginTop:8,position:"relative",zIndex:2,flexWrap:"wrap",padding:"0 16px",width:"100%",boxSizing:"border-box"}}>
-        <img src={SPONSOR_AZQUEST} style={{height:22,width:"auto",maxWidth:"26vw",objectFit:"contain"}} alt="AZ Quest"/>
+        <img src={SPONSOR_AZQUEST} style={{height:18,width:"auto",maxWidth:"22vw",objectFit:"contain"}} alt="AZ Quest"/>
         <img src={SPONSOR_CONSORCIOXP} style={{height:22,width:"auto",maxWidth:"26vw",objectFit:"contain"}} alt="Consórcio XP"/>
         <img src={SPONSOR_MAPFRE} style={{height:22,width:"auto",maxWidth:"26vw",objectFit:"contain"}} alt="Mapfre"/>
       </div>
