@@ -715,9 +715,19 @@ export default function App() {
                         {count===0
                           ?<div style={{fontSize:11,color:"#888",letterSpacing:1}}>Nenhuma aposta ainda</div>
                           :<table className="btable">
-                            <thead><tr><th>Participante</th><th>Palpite</th><th>Pts</th><th></th></tr></thead>
+                            <thead><tr><th>Participante</th><th>Palpite</th><th>Pts</th><th>Apostado em</th><th></th></tr></thead>
                             <tbody>
-                              {ranking.map(([name,bets])=>{
+                              {[...ranking].sort(([nA,bA],[nB,bB])=>{
+                                const pA=calcPoints(bA[game.id],results[game.id]);
+                                const pB=calcPoints(bB[game.id],results[game.id]);
+                                if(pA===null&&pB===null)return 0;
+                                if(pA===null)return 1;
+                                if(pB===null)return -1;
+                                if(pB!==pA)return pB-pA;
+                                const tsA=bA[game.id]?.timestamp||9999999999999;
+                                const tsB=bB[game.id]?.timestamp||9999999999999;
+                                return tsA-tsB;
+                              }).map(([name,bets])=>{
                                 const bet=bets[game.id];
                                 const pts=calcPoints(bet,results[game.id]);
                                 return(
@@ -725,6 +735,7 @@ export default function App() {
                                     <td>{name}</td>
                                     <td className="sc">{bet.homeScore} × {bet.awayScore}</td>
                                     <td className="sc">{pts!==null?pts:"—"}</td>
+                                    <td style={{fontSize:11,color:"#666",whiteSpace:"nowrap"}}>{bet.timestamp?new Date(bet.timestamp).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}):"—"}</td>
                                     <td><button className="delbtn" onClick={()=>setDeleteConfirm({name, gameId:game.id})}>Excluir</button></td>
                                   </tr>
                                 );
